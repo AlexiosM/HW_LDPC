@@ -262,24 +262,26 @@ entity VariableNode is port(
     inputsFromPNs: in std_logic_vector(5 downto 1);
     inputFromComparator: in std_logic;
     initialization: in std_logic;
+    dre_reset: in std_logic;
+    dre_seed: in std_logic_vector(10 downto 1);
     outputToPN: out std_logic
 );
 end VariableNode;
+
 architecture VariableNodeBehavior of VariableNode is
--- components LFSR, VN_sequential, VN_combinational
 component LFSR is Port(
-            clk : in std_logic;
-            enabled : in std_logic;
-            reset : in std_logic;
-            seed_values : in std_logic_vector(10 downto 1);
-            random_num : out std_logic_vector(10 downto 1)
-    );
+    clk : in std_logic;
+    enabled : in std_logic;
+    reset : in std_logic;
+    seed_values : in std_logic_vector(10 downto 1);
+    random_num : out std_logic_vector(10 downto 1)
+);
 end component;
 component VN_sequential is Port(
     input_VN:in std_logic_vector(5 downto 1); 
     comparator, init, output_IM1, output_IM2 :in std_logic;
     input_IM1, input_IM2, enable_IM1, enable_IM2, in_DFF:out std_logic;
-    output_EM,input_EM,update_EM:inout std_logic
+    output_EM, input_EM, update_EM:inout std_logic
 );
 end component;
 component VN_combinational is Port(
@@ -288,10 +290,25 @@ component VN_combinational is Port(
     output_IM1, output_IM2, output_EM, out_DFF :out std_logic
 );
 end component;
-begin
-DRE: LFSR port map ();
-VN_S: VN_sequential port map (); 
-VN_C: VN_combinational port map ();
+signal input_IM1, input_IM2, input_EM, output_IM1, output_IM2, output_EM, enable_IM1, enable_IM2, update_EM, in_DFF: std_logic;
+signal random_address: std_logic_vector(8 downto 1);
 
+begin
+DRE: LFSR port map ( clk=>clk,
+        enabled=>'1',
+        reset => dre_reset,
+        seed_values => dre_seed,
+        random_num(8 downto 1)=>random_address -- I need to use only 8 out of 10 binary bits
+);
+VN_Seq: VN_sequential port map ( input_VN => inputsFromPNs, comparator => inputFromComparator, init => initialization,
+        output_IM1 => output_IM1,output_IM2 => output_IM2,
+        input_IM1 => input_IM1, input_IM2 => input_IM2, enable_IM1 => enable_IM1, enable_IM2 => enable_IM2, in_DFF => in_DFF
+); 
+VN_Comb: VN_combinational port map ( input_IM1=>input_IM1, input_IM2=>input_IM2, input_EM=>input_EM, 
+        enable_IM1=>enable_IM1, enable_IM2=>enable_IM2, update_EM=>update_EM, clk=>clk, in_DFF=>in_DFF,
+        random_address=>random_address,
+        output_IM1=>output_IM1, output_IM2=>output_IM2, output_EM=>output_EM, 
+        out_DFF=>outputToPN
+);
 end VariableNodeBehavior;
 ------------------------------------------------------------------------
