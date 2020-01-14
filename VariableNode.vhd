@@ -1,32 +1,3 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 18.11.2019 00:35:00
--- Design Name: 
--- Module Name: VariableNode - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
 --- Parity Node ---
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -242,16 +213,7 @@ begin
     input=>input_EM,
     update=>update_EM,
     output=>output_EM);
-    
-    process(clk)
-    begin
-        if rising_edge(clk) then
-            output_IM1 <= input_IM1;
-            output_IM2 <= input_IM2;
-            output_EM <= input_EM;
-            out_DFF <= in_DFF;
-        end if;
-    end process;
+
 end VN_behav_combinational;
 -----------------------------------------------------------------------
 -- creation of Variable Node with Distributed Random Engine inside
@@ -291,22 +253,24 @@ component VN_combinational is Port(
 );
 end component;
 signal input_IM1, input_IM2, input_EM, output_IM1, output_IM2, output_EM, enable_IM1, enable_IM2, update_EM, in_DFF: std_logic;
-signal random_address: std_logic_vector(8 downto 1);
+signal random_address_tmp: std_logic_vector(8 downto 1);
+signal concatenated_address : std_logic_vector(10 downto 1);
 
 begin
+    random_address_tmp <= concatenated_address(8 downto 1);
 DRE: LFSR port map ( clk=>clk,
         enabled=>'1',
         reset => dre_reset,
         seed_values => dre_seed,
-        random_num(8 downto 1)=>random_address -- I need to use only 8 out of 10 binary bits
+        random_num => concatenated_address
 );
 VN_Seq: VN_sequential port map ( input_VN => inputsFromPNs, comparator => inputFromComparator, init => initialization,
         output_IM1 => output_IM1,output_IM2 => output_IM2,
         input_IM1 => input_IM1, input_IM2 => input_IM2, enable_IM1 => enable_IM1, enable_IM2 => enable_IM2, in_DFF => in_DFF
-); 
+);
 VN_Comb: VN_combinational port map ( input_IM1=>input_IM1, input_IM2=>input_IM2, input_EM=>input_EM, 
         enable_IM1=>enable_IM1, enable_IM2=>enable_IM2, update_EM=>update_EM, clk=>clk, in_DFF=>in_DFF,
-        random_address=>random_address,
+        random_address=>random_address_tmp,
         output_IM1=>output_IM1, output_IM2=>output_IM2, output_EM=>output_EM, 
         out_DFF=>outputToPN
 );
